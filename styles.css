@@ -16,8 +16,9 @@
   --alto: 52px;
 }
 
+/* Modo oscuro: por preferencia del sistema, salvo que se haya elegido el claro... */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-tema="claro"]) {
     --fondo: #0f1514;
     --superficie: #19221f;
     --texto: #e7efec;
@@ -32,6 +33,25 @@
     --sombra: 0 -6px 20px rgb(0 0 0 / 0.35);
   }
 }
+
+/* ...o por elección en el interruptor. Los valores deben coincidir con los de arriba. */
+:root[data-tema="oscuro"] {
+  color-scheme: dark;
+  --fondo: #0f1514;
+  --superficie: #19221f;
+  --texto: #e7efec;
+  --tenue: #9aaba6;
+  --borde: #2b3834;
+  --acento: #2dd4bf;
+  --acento-texto: #06231f;
+  --acento-suave: #16352f;
+  --acento-fuerte: #7ce8d9;
+  --peligro: #ff8a7a;
+  --peligro-suave: #3a1c18;
+  --sombra: 0 -6px 20px rgb(0 0 0 / 0.35);
+}
+
+:root[data-tema="claro"] { color-scheme: light; }
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -77,7 +97,7 @@ main {
   padding: calc(18px + env(safe-area-inset-top)) 16px 6px;
 }
 
-h1 { margin: 0; font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
+h1 { margin: 0 auto 0 0; font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
 h2 { margin: 0 0 12px; font-size: 1.05rem; }
 
 /* ---------- Formulario ---------- */
@@ -251,7 +271,7 @@ input.invalido { border-color: var(--peligro); }
 }
 
 .boton-principal { background: var(--acento); color: var(--acento-texto); border: 0; }
-.boton-principal:disabled { opacity: 0.4; cursor: default; }
+.boton-principal.incompleto { opacity: 0.55; }
 .boton-secundario { background: var(--superficie); border: 1.5px solid var(--borde); }
 .boton-peligro { background: var(--peligro-suave); color: var(--peligro); border: 0; }
 
@@ -263,6 +283,59 @@ input.invalido { border-color: var(--peligro); }
   color: var(--acento-fuerte);
   font-weight: 600;
 }
+
+/* ---------- Interruptor de tema ---------- */
+
+.tema {
+  flex: none;
+  display: flex;
+  align-items: center;
+  height: 48px;
+  padding: 0;
+  background: none;
+  border: 0;
+}
+
+.tema-pista {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  place-items: center;
+  width: 68px;
+  height: 36px;
+  padding: 3px;
+  background: var(--borde);
+  border-radius: 999px;
+}
+
+/* La perilla queda bajo el ícono activo: sol a la derecha, luna a la izquierda. */
+.tema-perilla {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 31px;
+  height: 30px;
+  background: var(--superficie);
+  border-radius: 999px;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
+  transform: translateX(31px);
+  transition: transform 0.18s;
+}
+.tema[aria-checked="true"] .tema-perilla { transform: translateX(0); }
+
+.tema svg {
+  position: relative;
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: var(--tenue);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: stroke 0.18s;
+}
+.tema[aria-checked="true"] .tema-luna,
+.tema[aria-checked="false"] .tema-sol { stroke: var(--texto); }
 
 /* ---------- Historial ---------- */
 
@@ -430,7 +503,7 @@ dialog::backdrop { background: rgb(0 0 0 / 0.5); }
 .aviso {
   position: fixed;
   left: 50%;
-  bottom: calc(150px + env(safe-area-inset-bottom));
+  top: calc(14px + env(safe-area-inset-top));
   transform: translateX(-50%);
   max-width: calc(100% - 32px);
   padding: 12px 18px;

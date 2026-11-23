@@ -1,6 +1,7 @@
 import { crearStore } from './store.js';
 import { iniciarCalculadora } from './ui-calculadora.js';
 import { iniciarHistorial } from './ui-historial.js';
+import { iniciarTema } from './tema.js';
 import { $ } from './ui-comun.js';
 
 function mostrar(vista) {
@@ -39,6 +40,8 @@ function iniciar() {
   }
 }
 
+iniciarTema();
+
 try {
   iniciar();
 } catch (error) {
@@ -52,9 +55,15 @@ try {
 if ('serviceWorker' in navigator) {
   // Si ya había una versión instalada y llega una nueva, se recarga para usarla
   // enseguida en lugar de esperar a la próxima apertura.
+  // Solo si todavía no se tocó nada: recargar a mitad de una carga borraría lo
+  // escrito. En ese caso la versión nueva se usa en la próxima apertura.
   const habiaVersion = Boolean(navigator.serviceWorker.controller);
+  let huboInteraccion = false;
+  for (const evento of ['pointerdown', 'keydown']) {
+    addEventListener(evento, () => { huboInteraccion = true; }, { once: true, capture: true });
+  }
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (habiaVersion) location.reload();
+    if (habiaVersion && !huboInteraccion) location.reload();
   });
   navigator.serviceWorker.register('./sw.js').catch((error) => console.error(error));
 }

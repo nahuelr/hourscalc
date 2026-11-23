@@ -289,3 +289,15 @@ Cada motivo tiene un tipo que define qué fechas y horarios pide:
 - El id se genera con `crypto.getRandomValues` cuando `crypto.randomUUID` no existe
   (pasa al abrir la app por http en la red local).
 - Al llegar una versión nueva, la app se recarga sola para usarla enseguida.
+
+## Revisión 3 (2026-11-23)
+
+- **Tema:** interruptor en el encabezado de cada pantalla, a la derecha del título,
+  con luna a la izquierda y sol a la derecha. Sin elección guardada se sigue al
+  sistema; la elección se guarda en `hourscalc.tema` (`claro` | `oscuro`).
+- **Guardar con datos incompletos:** el botón ya no se deshabilita (queda atenuado).
+  Al tocarlo con datos incompletos marca en rojo cada campo obligatorio vacío con su
+  mensaje, muestra un aviso y lleva la vista al primero. Las marcas se van quitando
+  a medida que se completan.
+- **Actualización de versión:** la recarga automática solo ocurre si todavía no se
+  tocó nada en la pantalla.

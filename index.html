@@ -10,6 +10,13 @@
   <link rel="icon" type="image/png" href="./icons/icon-192.png">
   <link rel="apple-touch-icon" href="./icons/icon-192.png">
   <link rel="stylesheet" href="./styles.css">
+  <script>
+    // Aplica el tema elegido antes de dibujar, para que no parpadee al abrir.
+    try {
+      var tema = localStorage.getItem('hourscalc.tema');
+      if (tema === 'claro' || tema === 'oscuro') document.documentElement.dataset.tema = tema;
+    } catch (e) {}
+  </script>
 </head>
 <body>
   <main id="contenido">
@@ -37,7 +44,7 @@
               <input type="date" id="hasta">
             </div>
           </div>
-          <p class="error" id="error-hasta" hidden></p>
+          <p class="error" id="error-fechas" hidden></p>
         </div>
 
         <div class="segmentado" id="selector-modo" role="group" aria-label="Modo de carga">
@@ -56,7 +63,7 @@
               <input type="time" id="salida">
             </div>
           </div>
-          <p class="error" id="error-salida" hidden></p>
+          <p class="error" id="error-horario" hidden></p>
 
           <div class="campo" id="campo-horas" hidden>
             <label for="horas">Cantidad de horas</label>
@@ -97,6 +104,7 @@
         <div class="campo">
           <label for="nota" id="etiqueta-nota">Nota (opcional)</label>
           <input type="text" id="nota" maxlength="120" enterkeyhint="done">
+          <p class="error" id="error-nota" hidden></p>
         </div>
 
         <button type="button" id="borrar" class="boton-peligro" hidden>Borrar esta carga</button>
@@ -107,7 +115,7 @@
           <span id="resultado-horas" class="resultado-horas"></span>
           <span id="resultado-monto" class="resultado-monto">$ 0</span>
         </div>
-        <button type="button" id="guardar" class="boton-principal" disabled>Guardar</button>
+        <button type="button" id="guardar" class="boton-principal">Guardar</button>
       </div>
     </section>
 

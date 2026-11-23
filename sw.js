@@ -2,7 +2,7 @@
 //
 // IMPORTANTE: al publicar cualquier cambio en la app hay que subir este número.
 // Es lo que le avisa al celular que hay una versión nueva para descargar.
-const VERSION = 'hourscalc-v2';
+const VERSION = 'hourscalc-v6';
 
 const ARCHIVOS = [
   './',
@@ -16,6 +16,7 @@ const ARCHIVOS = [
   './js/motivos.js',
   './js/ranking.js',
   './js/store.js',
+  './js/tema.js',
   './js/ui-calculadora.js',
   './js/ui-comun.js',
   './js/ui-historial.js',

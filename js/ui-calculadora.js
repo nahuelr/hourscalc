@@ -14,6 +14,17 @@ const PAUSA_LARGA_MS = 30 * 60 * 1000;
 
 const ETIQUETA_FECHA = { turno: 'Fecha', rango: 'Desde', pago: 'Fecha de pago' };
 
+const MENSAJE_FALTA = {
+  fecha: 'Falta la fecha',
+  fechaHasta: 'Falta la fecha de fin',
+  entrada: 'Falta la hora de entrada',
+  salida: 'Falta la hora de salida',
+  horas: 'Falta la cantidad de horas',
+  precioHora: 'Falta el precio por hora',
+  monto: 'Falta el monto',
+  nota: 'Falta la nota: es obligatoria para este motivo',
+};
+
 export function iniciarCalculadora({ store, alGuardar }) {
   const campos = {
     fecha: $('fecha'),
@@ -32,7 +43,9 @@ export function iniciarCalculadora({ store, alGuardar }) {
   let ranking = store.leerRanking() ?? rankingInicial();
   // Última fecha cargada mientras la app está abierta; arranca en hoy.
   let fechaSesion = hoyLocal();
-  const estado = { motivo: 'haberes', modo: 'horas', editando: null };
+  // `revisar` se enciende al tocar Guardar con datos incompletos: desde ahí se
+  // marcan también los campos obligatorios vacíos, no solo los valores inválidos.
+  const estado = { motivo: 'haberes', modo: 'horas', editando: null, revisar: false };
 
   // ---------- Motivos ----------
 
@@ -46,8 +59,17 @@ export function iniciarCalculadora({ store, alGuardar }) {
     });
   }
 
+  // Los botones solo se rearman cuando cambia el orden o el elegido. Si se
+  // rearmaran en cada actualización, salir de un campo de texto tocando un
+  // motivo reemplazaría el botón en pleno toque y ese toque se perdería.
+  let motivosDibujados = '';
+
   function dibujarMotivos() {
     const orden = ordenar(ranking);
+    const firma = `${orden.join(',')}|${estado.motivo}`;
+    if (firma === motivosDibujados) return;
+    motivosDibujados = firma;
+
     const visibles = orden.slice(0, VISIBLES);
     const resto = orden.slice(VISIBLES);
     const elegidoEnResto = resto.includes(estado.motivo);
@@ -102,11 +124,19 @@ export function iniciarCalculadora({ store, alGuardar }) {
     };
   }
 
-  function mostrarError(idError, campo, mensaje) {
+  // Marca los campos de un grupo que tienen problema y muestra debajo el primero.
+  // `grupo` es una lista de pares [campo, clave del problema].
+  function mostrarErrores(idError, grupo, problemas) {
+    let primero = '';
+    for (const [campo, clave] of grupo) {
+      const mensaje = problemas[clave];
+      campo.classList.toggle('invalido', Boolean(mensaje));
+      campo.setAttribute('aria-invalid', String(Boolean(mensaje)));
+      primero ||= mensaje ?? '';
+    }
     const caja = $(idError);
-    caja.textContent = mensaje ?? '';
-    caja.hidden = !mensaje;
-    campo.classList.toggle('invalido', Boolean(mensaje));
+    caja.textContent = primero;
+    caja.hidden = !primero;
   }
 
   // Un campo numérico con texto que no se pudo interpretar.
@@ -134,18 +164,29 @@ export function iniciarCalculadora({ store, alGuardar }) {
     $('fila-doble').hidden = !motivo.permiteDoble;
     $('etiqueta-nota').textContent = motivo.notaObligatoria ? 'Nota (obligatoria)' : 'Nota (opcional)';
 
-    const horasIlegibles = porHoras && r.tipo === 'rango' && ilegible(campos.horas);
-    const precioIlegible = porHoras && ilegible(campos.precio);
-    const montoIlegible = !porHoras && ilegible(campos.monto);
+    // Problemas a mostrar, por clave de campo. Los vacíos solo cuentan después
+    // de un intento de guardar; los valores inválidos se muestran siempre.
+    const problemas = {};
+    if (estado.revisar) {
+      for (const clave of r.faltan) problemas[clave] = MENSAJE_FALTA[clave];
+    }
+    Object.assign(problemas, r.errores);
+    if (porHoras && r.tipo === 'rango' && ilegible(campos.horas)) {
+      problemas.horas = 'Escribí solo números, por ejemplo 4,5';
+    }
+    if (porHoras && ilegible(campos.precio)) {
+      problemas.precioHora = 'Escribí solo números, por ejemplo 4500';
+    }
+    if (!porHoras && ilegible(campos.monto)) {
+      problemas.monto = 'Escribí solo números, por ejemplo 150000';
+    }
 
-    mostrarError('error-hasta', campos.hasta, r.errores.fechaHasta);
-    mostrarError('error-salida', campos.salida, r.errores.salida);
-    mostrarError('error-horas', campos.horas,
-      horasIlegibles ? 'Escribí solo números, por ejemplo 4,5' : r.errores.horas);
-    mostrarError('error-precio', campos.precio,
-      precioIlegible ? 'Escribí solo números, por ejemplo 4500' : r.errores.precioHora);
-    mostrarError('error-monto', campos.monto,
-      montoIlegible ? 'Escribí solo números, por ejemplo 150000' : r.errores.monto);
+    mostrarErrores('error-fechas', [[campos.fecha, 'fecha'], [campos.hasta, 'fechaHasta']], problemas);
+    mostrarErrores('error-horario', [[campos.entrada, 'entrada'], [campos.salida, 'salida']], problemas);
+    mostrarErrores('error-horas', [[campos.horas, 'horas']], problemas);
+    mostrarErrores('error-precio', [[campos.precio, 'precioHora']], problemas);
+    mostrarErrores('error-monto', [[campos.monto, 'monto']], problemas);
+    mostrarErrores('error-nota', [[campos.nota, 'nota']], problemas);
 
     let detalle = '';
     if (porHoras && r.minutosPagados > 0) {
@@ -158,7 +199,9 @@ export function iniciarCalculadora({ store, alGuardar }) {
     $('resultado-horas').textContent = detalle;
     $('resultado-monto').textContent = dinero(r.monto);
 
-    botonGuardar.disabled = !r.ok || horasIlegibles || precioIlegible || montoIlegible;
+    // El botón queda atenuado pero se puede tocar: al hacerlo señala qué falta.
+    botonGuardar.classList.toggle('incompleto', !r.ok);
+    return r;
   }
 
   // ---------- Carga del formulario ----------
@@ -173,6 +216,7 @@ export function iniciarCalculadora({ store, alGuardar }) {
 
   function reiniciar() {
     estado.editando = null;
+    estado.revisar = false;
     estado.motivo = ordenar(ranking)[0];
     estado.modo = motivoPorClave(estado.motivo).modo;
     campos.fecha.value = fechaSesion;
@@ -192,6 +236,7 @@ export function iniciarCalculadora({ store, alGuardar }) {
     const motivo = motivoPorClave(registro.motivo);
     const porHoras = registro.modo === 'horas';
     estado.editando = registro;
+    estado.revisar = false;
     estado.motivo = registro.motivo;
     estado.modo = registro.modo;
     campos.fecha.value = registro.fecha;
@@ -213,6 +258,15 @@ export function iniciarCalculadora({ store, alGuardar }) {
   // ---------- Acciones ----------
 
   function guardar() {
+    if (!actualizar().ok) {
+      estado.revisar = true;
+      actualizar();
+      aviso('Revisá los campos marcados');
+      document.querySelector('#form-carga input.invalido')
+        ?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      return;
+    }
+
     const form = leerForm();
     const eraEdicion = Boolean(estado.editando);
     const guardado = store.guardar(construirRegistro(form, estado.editando));

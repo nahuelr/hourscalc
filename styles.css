@@ -439,6 +439,16 @@ input.invalido { border-color: var(--peligro); }
 }
 .copias button { padding: 0 8px; font-weight: 600; }
 
+.firma {
+  margin: 0;
+  padding: 0 16px 16px;
+  text-align: center;
+  color: var(--tenue);
+  font: 0.72rem ui-monospace, "Cascadia Mono", Consolas, monospace;
+  letter-spacing: 0.06em;
+  opacity: 0.8;
+}
+
 /* ---------- Pestañas ---------- */
 
 .pestanas {

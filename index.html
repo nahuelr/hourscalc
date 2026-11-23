@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f4f6f5" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f1514" media="(prefers-color-scheme: dark)">
+  <title>HoursCalc</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" type="image/png" href="./icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main id="contenido">
+    <!-- Calculadora -->
+    <section id="vista-calculadora" class="vista">
+      <header class="encabezado">
+        <h1 id="titulo-calculadora">Nueva carga</h1>
+        <button type="button" id="cancelar-edicion" class="boton-texto" hidden>Cancelar</button>
+      </header>
+
+      <form id="form-carga" class="formulario" novalidate autocomplete="off">
+        <div class="campo">
+          <label for="fecha">Fecha</label>
+          <input type="date" id="fecha" required>
+        </div>
+
+        <div class="campo">
+          <span class="etiqueta" id="etiqueta-motivo">Motivo</span>
+          <div id="motivos" class="motivos" role="radiogroup" aria-labelledby="etiqueta-motivo"></div>
+        </div>
+
+        <div class="segmentado" role="group" aria-label="Modo de carga">
+          <button type="button" data-modo="horas" aria-pressed="true">Por horas</button>
+          <button type="button" data-modo="fijo" aria-pressed="false">Monto fijo</button>
+        </div>
+
+        <div id="bloque-horas" class="bloque">
+          <div class="fila">
+            <div class="campo">
+              <label for="entrada">Entrada</label>
+              <input type="time" id="entrada">
+            </div>
+            <div class="campo">
+              <label for="salida">Salida</label>
+              <input type="time" id="salida">
+            </div>
+          </div>
+          <p class="error" id="error-salida" hidden></p>
+
+          <div class="campo">
+            <label for="precio">Precio por hora</label>
+            <div class="con-prefijo">
+              <span aria-hidden="true">$</span>
+              <input type="text" id="precio" inputmode="decimal" placeholder="0">
+            </div>
+            <p class="error" id="error-precio" hidden></p>
+          </div>
+
+          <label class="interruptor" id="fila-doble" hidden>
+            <span>
+              <strong>Paga doble</strong>
+              <small>Feriado trabajado</small>
+            </span>
+            <input type="checkbox" id="doble">
+            <span class="pista" aria-hidden="true"></span>
+          </label>
+        </div>
+
+        <div id="bloque-fijo" class="bloque" hidden>
+          <div class="campo">
+            <label for="monto">Monto</label>
+            <div class="con-prefijo">
+              <span aria-hidden="true">$</span>
+              <input type="text" id="monto" inputmode="decimal" placeholder="0">
+            </div>
+            <p class="error" id="error-monto" hidden></p>
+          </div>
+        </div>
+
+        <div class="campo">
+          <label for="nota" id="etiqueta-nota">Nota (opcional)</label>
+          <input type="text" id="nota" maxlength="120" enterkeyhint="done">
+        </div>
+
+        <button type="button" id="borrar" class="boton-peligro" hidden>Borrar esta carga</button>
+      </form>
+
+      <div class="resultado">
+        <div class="resultado-datos" aria-live="polite">
+          <span id="resultado-horas" class="resultado-horas"></span>
+          <span id="resultado-monto" class="resultado-monto">$ 0</span>
+        </div>
+        <button type="button" id="guardar" class="boton-principal" disabled>Guardar</button>
+      </div>
+    </section>
+
+    <!-- Historial -->
+    <section id="vista-historial" class="vista" hidden>
+      <header class="encabezado">
+        <h1>Historial</h1>
+      </header>
+      <div id="lista-meses" class="lista-meses"></div>
+      <p id="historial-vacio" class="vacio" hidden>
+        Todavía no hay cargas.<br>Cargá la primera desde la calculadora.
+      </p>
+      <div class="copias">
+        <button type="button" id="exportar" class="boton-secundario">Exportar copia</button>
+        <button type="button" id="importar" class="boton-secundario">Importar copia</button>
+        <input type="file" id="archivo-importar" accept="application/json,.json" hidden>
+      </div>
+    </section>
+  </main>
+
+  <nav class="pestanas" aria-label="Secciones">
+    <button type="button" data-vista="calculadora" aria-current="page">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8.5 7.5h7M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01"/></svg>
+      <span>Calculadora</span>
+    </button>
+    <button type="button" data-vista="historial">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6.5h12M8 12h12M8 17.5h12M4 6.5h.01M4 12h.01M4 17.5h.01"/></svg>
+      <span>Historial</span>
+    </button>
+  </nav>
+
+  <dialog id="panel-motivos" class="hoja" aria-label="Más motivos">
+    <div class="hoja-asa" aria-hidden="true"></div>
+    <h2>Más motivos</h2>
+    <div id="panel-motivos-lista" class="hoja-lista"></div>
+  </dialog>
+
+  <dialog id="dialogo-confirmar" class="dialogo">
+    <p id="confirmar-texto"></p>
+    <div class="dialogo-acciones">
+      <button type="button" id="confirmar-no" class="boton-secundario">Cancelar</button>
+      <button type="button" id="confirmar-si" class="boton-peligro"></button>
+    </div>
+  </dialog>
+
+  <div id="aviso" class="aviso" role="status" aria-live="polite" hidden></div>
+
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>

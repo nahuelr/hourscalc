@@ -92,6 +92,9 @@ h2 { margin: 0 0 12px; font-size: 1.05rem; }
 
 .bloque { display: flex; flex-direction: column; gap: 16px; }
 .fila { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.fila.una { grid-template-columns: 1fr; }
+.bloque-fechas { display: flex; flex-direction: column; gap: 6px; }
+.bloque > .error { margin-top: -10px; }
 .campo { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 
 label, .etiqueta { font-size: 0.85rem; font-weight: 600; color: var(--tenue); }

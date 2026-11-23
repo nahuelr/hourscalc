@@ -2,7 +2,7 @@ import { etiquetaDe } from './motivos.js';
 import {
   agruparPorMes, motivosPresentes, filtrar, totales, textoParaCopiar, etiquetaRegistro,
 } from './historial.js';
-import { dinero, horas, mesCorto, fechaCorta, hoyLocal } from './formato.js';
+import { dinero, horas, mesCorto, fechaCorta, rangoFechas, hoyLocal } from './formato.js';
 import { $, el, aviso, copiarTexto } from './ui-comun.js';
 
 const SVG = 'http://www.w3.org/2000/svg';
@@ -43,8 +43,6 @@ export function iniciarHistorial({ store, alEditar }) {
       ...presentes.map((clave) => chip(etiquetaDe(clave), filtro.has(clave), () => {
         if (filtro.has(clave)) filtro.delete(clave);
         else filtro.add(clave);
-        // Marcar todos equivale a no filtrar.
-        if (filtro.size === presentes.length) filtro.clear();
         refrescar();
       })),
     );
@@ -52,13 +50,15 @@ export function iniciarHistorial({ store, alEditar }) {
 
   function dibujarRegistro(r) {
     const detalle = [];
-    if (r.modo === 'horas') detalle.push(`${r.entrada}–${r.salida}`, horas(r.minutosPagados));
+    if (r.fechaHasta && r.fechaHasta !== r.fecha) detalle.push(`hasta el ${fechaCorta(r.fechaHasta)}`);
+    if (r.entrada && r.salida) detalle.push(`${r.entrada}–${r.salida}`);
+    if (r.minutosPagados > 0) detalle.push(horas(r.minutosPagados));
     if (r.nota) detalle.push(r.nota);
     return el('li', {},
       el('button', {
         type: 'button',
         class: 'registro',
-        'aria-label': `Editar carga del ${fechaCorta(r.fecha)}, ${etiquetaRegistro(r)}, ${dinero(r.monto)}`,
+        'aria-label': `Editar carga del ${rangoFechas(r)}, ${etiquetaRegistro(r)}, ${dinero(r.monto)}`,
         onclick: () => alEditar(r),
       },
         el('span', { class: 'registro-fecha', text: fechaCorta(r.fecha) }),
@@ -77,7 +77,7 @@ export function iniciarHistorial({ store, alEditar }) {
     const visibles = filtrar(grupo.registros, filtro);
     const detalle = el('div', { class: 'mes-detalle' });
 
-    if (presentes.length > 1) detalle.append(dibujarFiltro(grupo.mes, presentes, filtro));
+    detalle.append(dibujarFiltro(grupo.mes, presentes, filtro));
     if (filtro.size > 0) {
       detalle.append(el('p', { class: 'subtotal', text: `Subtotal: ${resumen(totales(visibles))}` }));
     }

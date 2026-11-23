@@ -40,6 +40,16 @@ export function hoyLocal(date = new Date()) {
   return `${date.getFullYear()}-${dos(date.getMonth() + 1)}-${dos(date.getDate())}`;
 }
 
+export function horaActual(date = new Date()) {
+  return `${dos(date.getHours())}:${dos(date.getMinutes())}`;
+}
+
+// "23/11", o "23/11 al 02/12" si el registro abarca más de un día.
+export function rangoFechas({ fecha, fechaHasta }) {
+  if (!fechaHasta || fechaHasta === fecha) return fechaCorta(fecha);
+  return `${fechaCorta(fecha)} al ${fechaCorta(fechaHasta)}`;
+}
+
 // Interpreta un número escrito a mano. La coma es decimal y el punto separa miles;
 // un punto que no agrupa de a tres dígitos se toma como decimal.
 export function parsearNumero(texto) {

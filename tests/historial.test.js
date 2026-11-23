@@ -82,3 +82,14 @@ test('textoParaCopiar omite las horas en montos fijos', () => {
     'Total: $ 150.000',
   ].join('\n'));
 });
+
+test('textoParaCopiar muestra el rango de fechas cuando abarca varios días', () => {
+  const licencia = reg('2026-08-03', 'licencia', 720, 54000, { fechaHasta: '2026-08-05' });
+  const feriado = reg('2026-08-17', 'feriado', 300, 22500, { fechaHasta: '2026-08-17' });
+  assert.equal(textoParaCopiar('2026-08', [licencia, feriado]), [
+    'Agosto 2026',
+    '03/08 al 05/08 · Licencia · 12 h · $ 54.000',
+    '17/08 · Feriado · 5 h · $ 22.500',
+    'Total: 17 h · $ 76.500',
+  ].join('\n'));
+});

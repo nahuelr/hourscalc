@@ -243,3 +243,49 @@ Si no hay registros, se muestra un mensaje que invita a cargar el primero.
 - `store`: crear, actualizar, borrado lógico, fusión al importar.
 
 Las pantallas se verifican a mano en el navegador.
+
+## Revisión 2 (2026-11-23)
+
+Cambios pedidos después de la primera prueba. Donde contradicen lo anterior, vale esto.
+
+### Tipos de motivo
+
+Cada motivo tiene un tipo que define qué fechas y horarios pide:
+
+| Tipo | Motivos | Campos |
+|---|---|---|
+| `turno` | Haberes, Otro | Fecha, hora de entrada y de salida |
+| `rango` | Feriado, Licencia, Vacaciones, ART | Desde y Hasta (por defecto el mismo día), sin horario |
+| `pago` | Aguinaldo | Solo fecha de pago y monto |
+
+- En `rango` por horas se escribe la **cantidad de horas** total; se redondea hacia
+  arriba al cuarto de hora igual que la diferencia de un turno. También admite monto fijo.
+- `pago` es siempre monto fijo; no muestra el selector de modo.
+- El registro suma el campo `fechaHasta` (null salvo en `rango`). `entrada` y `salida`
+  solo se guardan en `turno` por horas. Un rango cuenta en el mes de su fecha de inicio.
+
+### Validación de inicio y fin
+
+- `turno`: la salida debe ser estrictamente posterior a la entrada.
+- `rango`: Hasta no puede ser anterior a Desde; pueden coincidir (un solo día).
+- `pago`: no hay fin que validar.
+- Al cambiar Desde a una fecha posterior a Hasta, Hasta se mueve a esa fecha.
+
+### Valores por defecto
+
+- Al abrir la app, la fecha es la de hoy. Mientras la app sigue abierta, después de
+  guardar se conserva la última fecha cargada.
+- Si la app vuelve de más de 30 minutos en segundo plano, se trata como recién abierta.
+- La hora de salida arranca en la hora actual.
+
+### Historial
+
+- El filtro por motivo se muestra en cada mes siempre, aunque tenga un solo motivo.
+- Los rangos de más de un día muestran "hasta el dd/mm"; en el texto copiado,
+  "dd/mm al dd/mm".
+
+### Otros
+
+- El id se genera con `crypto.getRandomValues` cuando `crypto.randomUUID` no existe
+  (pasa al abrir la app por http en la red local).
+- Al llegar una versión nueva, la app se recarga sola para usarla enseguida.

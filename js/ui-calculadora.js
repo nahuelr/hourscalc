@@ -1,16 +1,26 @@
-import { MOTIVOS, motivoPorClave, etiquetaDe } from './motivos.js';
+import { motivoPorClave, etiquetaDe } from './motivos.js';
 import { calcular, construirRegistro } from './calc.js';
 import { rankingInicial, registrarUso, ordenar } from './ranking.js';
-import { dinero, horas, hoyLocal, parsearNumero, numeroEditable } from './formato.js';
+import {
+  dinero, horas, hoyLocal, horaActual, parsearNumero, numeroEditable,
+} from './formato.js';
 import { $, el, aviso, confirmar, cerrarAlTocarFuera } from './ui-comun.js';
 
 const VISIBLES = 3;
 
+// Si la app estuvo en segundo plano más de este tiempo, al volver se la trata
+// como recién abierta: fecha de hoy y hora de salida actual.
+const PAUSA_LARGA_MS = 30 * 60 * 1000;
+
+const ETIQUETA_FECHA = { turno: 'Fecha', rango: 'Desde', pago: 'Fecha de pago' };
+
 export function iniciarCalculadora({ store, alGuardar }) {
   const campos = {
     fecha: $('fecha'),
+    hasta: $('hasta'),
     entrada: $('entrada'),
     salida: $('salida'),
+    horas: $('horas'),
     precio: $('precio'),
     doble: $('doble'),
     monto: $('monto'),
@@ -20,6 +30,8 @@ export function iniciarCalculadora({ store, alGuardar }) {
   const botonGuardar = $('guardar');
 
   let ranking = store.leerRanking() ?? rankingInicial();
+  // Última fecha cargada mientras la app está abierta; arranca en hoy.
+  let fechaSesion = hoyLocal();
   const estado = { motivo: 'haberes', modo: 'horas', editando: null };
 
   // ---------- Motivos ----------
@@ -57,10 +69,19 @@ export function iniciarCalculadora({ store, alGuardar }) {
   }
 
   function elegirMotivo(clave) {
+    const motivo = motivoPorClave(clave);
     estado.motivo = clave;
-    estado.modo = motivoPorClave(clave).modo;
-    if (!motivoPorClave(clave).permiteDoble) campos.doble.checked = false;
+    estado.modo = motivo.modo;
+    if (!motivo.permiteDoble) campos.doble.checked = false;
+    alinearHasta();
     actualizar();
+  }
+
+  // El fin del rango nunca queda antes del inicio por un cambio en "Desde".
+  function alinearHasta() {
+    if (!campos.hasta.value || campos.hasta.value < campos.fecha.value) {
+      campos.hasta.value = campos.fecha.value;
+    }
   }
 
   // ---------- Lectura y validación ----------
@@ -69,8 +90,11 @@ export function iniciarCalculadora({ store, alGuardar }) {
     return {
       motivo: estado.motivo,
       modo: estado.modo,
+      fecha: campos.fecha.value,
+      fechaHasta: campos.hasta.value,
       entrada: campos.entrada.value,
       salida: campos.salida.value,
+      horas: parsearNumero(campos.horas.value),
       precioHora: parsearNumero(campos.precio.value),
       doble: campos.doble.checked,
       montoFijo: parsearNumero(campos.monto.value),
@@ -90,23 +114,34 @@ export function iniciarCalculadora({ store, alGuardar }) {
 
   function actualizar() {
     const motivo = motivoPorClave(estado.motivo);
-    const porHoras = estado.modo === 'horas';
+    const r = calcular(leerForm());
+    const porHoras = r.modo === 'horas';
 
     dibujarMotivos();
     for (const boton of document.querySelectorAll('.segmentado button')) {
-      boton.setAttribute('aria-pressed', String(boton.dataset.modo === estado.modo));
+      boton.setAttribute('aria-pressed', String(boton.dataset.modo === r.modo));
     }
+
+    // Qué campos pide cada tipo de motivo.
+    $('etiqueta-fecha').textContent = ETIQUETA_FECHA[r.tipo];
+    $('campo-hasta').hidden = r.tipo !== 'rango';
+    $('fila-fechas').classList.toggle('una', r.tipo !== 'rango');
+    $('selector-modo').hidden = r.tipo === 'pago';
     $('bloque-horas').hidden = !porHoras;
     $('bloque-fijo').hidden = porHoras;
+    $('fila-horario').hidden = r.tipo !== 'turno';
+    $('campo-horas').hidden = r.tipo !== 'rango';
     $('fila-doble').hidden = !motivo.permiteDoble;
     $('etiqueta-nota').textContent = motivo.notaObligatoria ? 'Nota (obligatoria)' : 'Nota (opcional)';
 
-    const form = leerForm();
-    const r = calcular(form);
+    const horasIlegibles = porHoras && r.tipo === 'rango' && ilegible(campos.horas);
     const precioIlegible = porHoras && ilegible(campos.precio);
     const montoIlegible = !porHoras && ilegible(campos.monto);
 
+    mostrarError('error-hasta', campos.hasta, r.errores.fechaHasta);
     mostrarError('error-salida', campos.salida, r.errores.salida);
+    mostrarError('error-horas', campos.horas,
+      horasIlegibles ? 'Escribí solo números, por ejemplo 4,5' : r.errores.horas);
     mostrarError('error-precio', campos.precio,
       precioIlegible ? 'Escribí solo números, por ejemplo 4500' : r.errores.precioHora);
     mostrarError('error-monto', campos.monto,
@@ -123,7 +158,7 @@ export function iniciarCalculadora({ store, alGuardar }) {
     $('resultado-horas').textContent = detalle;
     $('resultado-monto').textContent = dinero(r.monto);
 
-    botonGuardar.disabled = !r.ok || !campos.fecha.value || precioIlegible || montoIlegible;
+    botonGuardar.disabled = !r.ok || horasIlegibles || precioIlegible || montoIlegible;
   }
 
   // ---------- Carga del formulario ----------
@@ -140,9 +175,11 @@ export function iniciarCalculadora({ store, alGuardar }) {
     estado.editando = null;
     estado.motivo = ordenar(ranking)[0];
     estado.modo = motivoPorClave(estado.motivo).modo;
-    campos.fecha.value = hoyLocal();
+    campos.fecha.value = fechaSesion;
+    campos.hasta.value = fechaSesion;
     campos.entrada.value = '';
-    campos.salida.value = '';
+    campos.salida.value = horaActual();
+    campos.horas.value = '';
     campos.precio.value = numeroEditable(store.leerPrefs().precioHora);
     campos.doble.checked = false;
     campos.monto.value = '';
@@ -152,15 +189,21 @@ export function iniciarCalculadora({ store, alGuardar }) {
   }
 
   function editar(registro) {
+    const motivo = motivoPorClave(registro.motivo);
+    const porHoras = registro.modo === 'horas';
     estado.editando = registro;
     estado.motivo = registro.motivo;
     estado.modo = registro.modo;
     campos.fecha.value = registro.fecha;
+    campos.hasta.value = registro.fechaHasta ?? registro.fecha;
     campos.entrada.value = registro.entrada ?? '';
-    campos.salida.value = registro.salida ?? '';
+    campos.salida.value = registro.salida ?? horaActual();
+    campos.horas.value = porHoras && motivo.tipo === 'rango'
+      ? numeroEditable(registro.minutosPagados / 60)
+      : '';
     campos.precio.value = numeroEditable(registro.precioHora ?? store.leerPrefs().precioHora);
     campos.doble.checked = registro.multiplicador === 2;
-    campos.monto.value = registro.modo === 'fijo' ? numeroEditable(registro.monto) : '';
+    campos.monto.value = porHoras ? '' : numeroEditable(registro.monto);
     campos.nota.value = registro.nota ?? '';
     dibujarModoEdicion();
     actualizar();
@@ -172,13 +215,14 @@ export function iniciarCalculadora({ store, alGuardar }) {
   function guardar() {
     const form = leerForm();
     const eraEdicion = Boolean(estado.editando);
-    const guardado = store.guardar(construirRegistro(form, campos.fecha.value, estado.editando));
+    const guardado = store.guardar(construirRegistro(form, estado.editando));
 
     if (!eraEdicion) {
       ranking = registrarUso(ranking, form.motivo);
       store.guardarRanking(ranking);
+      fechaSesion = form.fecha;
     }
-    if (form.modo === 'horas') {
+    if (guardado.modo === 'horas') {
       store.guardarPrefs({ ...store.leerPrefs(), precioHora: form.precioHora });
     }
 
@@ -197,6 +241,7 @@ export function iniciarCalculadora({ store, alGuardar }) {
 
   // ---------- Eventos ----------
 
+  campos.fecha.addEventListener('change', alinearHasta);
   for (const campo of Object.values(campos)) {
     campo.addEventListener('input', actualizar);
     campo.addEventListener('change', actualizar);
@@ -216,8 +261,23 @@ export function iniciarCalculadora({ store, alGuardar }) {
   });
   cerrarAlTocarFuera(panel);
 
-  // Por si la lista de motivos cambia entre versiones.
-  if (!MOTIVOS.some((m) => m.clave === estado.motivo)) estado.motivo = MOTIVOS[0].clave;
+  // En el celular la app suele quedar abierta en segundo plano de un día para
+  // el otro; al volver tras una pausa larga se actualizan fecha y hora.
+  let ocultaDesde = null;
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      ocultaDesde = Date.now();
+      return;
+    }
+    const pausaLarga = ocultaDesde !== null && Date.now() - ocultaDesde > PAUSA_LARGA_MS;
+    ocultaDesde = null;
+    if (!pausaLarga || estado.editando) return;
+    fechaSesion = hoyLocal();
+    campos.fecha.value = fechaSesion;
+    campos.hasta.value = fechaSesion;
+    campos.salida.value = horaActual();
+    actualizar();
+  });
 
   reiniciar();
   return { editar };

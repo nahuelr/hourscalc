@@ -1,5 +1,5 @@
 import { MOTIVOS, etiquetaDe } from './motivos.js';
-import { dinero, horas, fechaCorta, mesLargo } from './formato.js';
+import { dinero, horas, rangoFechas, mesLargo } from './formato.js';
 
 export function totales(registros) {
   let minutos = 0;
@@ -46,7 +46,7 @@ export function etiquetaRegistro(r) {
 export function textoParaCopiar(mes, registros) {
   const lineas = [mesLargo(mes)];
   for (const r of registros) {
-    const partes = [fechaCorta(r.fecha), etiquetaRegistro(r)];
+    const partes = [rangoFechas(r), etiquetaRegistro(r)];
     if (r.minutosPagados > 0) partes.push(horas(r.minutosPagados));
     partes.push(dinero(r.monto));
     if (r.nota) partes.push(r.nota);

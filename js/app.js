@@ -50,5 +50,11 @@ try {
 }
 
 if ('serviceWorker' in navigator) {
+  // Si ya había una versión instalada y llega una nueva, se recarga para usarla
+  // enseguida en lugar de esperar a la próxima apertura.
+  const habiaVersion = Boolean(navigator.serviceWorker.controller);
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (habiaVersion) location.reload();
+  });
   navigator.serviceWorker.register('./sw.js').catch((error) => console.error(error));
 }

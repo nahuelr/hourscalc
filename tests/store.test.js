@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { crearStore } from '../js/store.js';
+import { crearStore, generarId } from '../js/store.js';
 
 function almacenFalso(inicial = {}) {
   const datos = new Map(Object.entries(inicial));
@@ -133,4 +133,14 @@ test('ranking y preferencias se guardan y se leen', () => {
   const otro = nuevoStore(storage).store;
   assert.deepEqual(otro.leerRanking(), { haberes: 3 });
   assert.deepEqual(otro.leerPrefs(), { precioHora: 4500 });
+});
+
+test('generarId produce un UUID v4 aun sin crypto.randomUUID', () => {
+  const formato = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+  const sinRandomUUID = { getRandomValues: (b) => crypto.getRandomValues(b) };
+  const a = generarId(sinRandomUUID);
+  const b = generarId(sinRandomUUID);
+  assert.match(a, formato);
+  assert.notEqual(a, b);
+  assert.match(generarId(), formato);
 });

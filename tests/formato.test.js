@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  dinero, horas, mesCorto, mesLargo, fechaCorta, hoyLocal, parsearNumero,
+  dinero, horas, mesCorto, mesLargo, fechaCorta, hoyLocal, parsearNumero, horaActual, rangoFechas,
 } from '../js/formato.js';
 
 test('dinero usa punto de miles y no muestra decimales', () => {
@@ -55,4 +55,15 @@ test('parsearNumero devuelve null si no hay un número', () => {
   assert.equal(parsearNumero('abc'), null);
   assert.equal(parsearNumero('12,3,4'), null);
   assert.equal(parsearNumero('-5'), null);
+});
+
+test('horaActual devuelve la hora local con dos dígitos', () => {
+  assert.equal(horaActual(new Date(2026, 10, 23, 9, 5)), '09:05');
+  assert.equal(horaActual(new Date(2026, 10, 23, 17, 40)), '17:40');
+});
+
+test('rangoFechas muestra una fecha o el rango', () => {
+  assert.equal(rangoFechas({ fecha: '2026-11-23', fechaHasta: null }), '23/11');
+  assert.equal(rangoFechas({ fecha: '2026-11-23', fechaHasta: '2026-11-23' }), '23/11');
+  assert.equal(rangoFechas({ fecha: '2026-11-23', fechaHasta: '2026-12-02' }), '23/11 al 02/12');
 });

@@ -2,7 +2,7 @@
 //
 // IMPORTANTE: al publicar cualquier cambio en la app hay que subir este número.
 // Es lo que le avisa al celular que hay una versión nueva para descargar.
-const VERSION = 'hourscalc-v7';
+const VERSION = 'hourscalc-v8';
 
 const ARCHIVOS = [
   './',

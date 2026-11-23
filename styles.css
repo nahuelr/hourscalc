@@ -449,6 +449,9 @@ input.invalido { border-color: var(--peligro); }
   opacity: 0.8;
 }
 
+/* En la calculadora va al final del formulario, pegada al fondo si sobra lugar. */
+.formulario .firma { margin-top: auto; padding: 8px 0 0; }
+
 /* ---------- Pestañas ---------- */
 
 .pestanas {
